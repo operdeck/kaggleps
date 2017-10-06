@@ -103,9 +103,9 @@ crossValidation <- trainControl(
 
 # ideas on XGB hyp params see https://i.stack.imgur.com/9GgQK.jpg
 
-xgbGrid <- expand.grid(nrounds = seq(100,400,by=100)
-                       ,eta = 0.02
-                       ,max_depth = c(5,9)
+xgbGrid <- expand.grid(nrounds = seq(100,800,by=50)
+                       ,eta = c(0.01,0.02,0.05)
+                       ,max_depth = c(5,7,9)
                        ,gamma = 1
                        ,colsample_bytree = 1
                        ,min_child_weight = 1
@@ -152,4 +152,4 @@ cat("Best CV Gini  :",max(model$results$Gini),fill=T)
 print (model$results[which.max(model$results$Gini),])
 
 
-preds <- predict(model, newdata = x_test, type = "prob")
+# preds <- predict(model, newdata = x_test, type = "prob")
