@@ -13,8 +13,12 @@ library(ggthemes)
 theme_set(theme_minimal())
 
 # source("utils.R")
+ptm <- proc.time()
 
-data <- fread("data/train.csv")
+data <- rbindlist(list(fread("data/train.csv"), fread("data/test.csv")), use.names = T, fill = T) 
+
+print(paste(sum(!is.na(data$target)), "rows of train data"))
+print(paste(sum(is.na(data$target)), "rows of test data"))
 print(dim(data))
 print(summary(data))
 
@@ -22,23 +26,23 @@ print(summary(data))
 
 print("Modeling")
 
-target <- factor(make.names(data$target))
-trainset <- data[, -c("target","id"), with=F]
+target <- factor(make.names(data$target[!is.na(data$target)]))
+oriNames <- names(data)
+excludedFlds <- c("target","id")
+# trainset <- data[, -c("target","id"), with=F]
 
-# consider trick to join trainset&test together so all done smae way
+# Make numeric - N/A in this dataset
+# symCols <- names(data)[!sapply(data, is.numeric)]
+# for (symcol in symCols) {
+#   levels <- unique(trainset[[symcol]])
+#   trainset[[symcol]] <- as.integer(factor(trainset[[symcol]],levels=levels))
+# }
 
-# Make numeric
-symCols <- names(trainset)[!sapply(trainset, is.numeric)]
-for (symcol in symCols) {
-  levels <- unique(trainset[[symcol]])
-  trainset[[symcol]] <- as.integer(factor(trainset[[symcol]],levels=levels))
-}
-
-# Simple NA imputation
-for (col in names(trainset)) {
-  # cat(col, sum(!complete.cases(trainset[[col]])), fill=T)
-  trainset[[col]] <- ifelse(is.na(trainset[[col]]), -1234567, trainset[[col]])
-}
+# Simple NA imputation - N/A in this dataset
+# for (col in names(trainset)) {
+#   # cat(col, sum(!complete.cases(trainset[[col]])), fill=T)
+#   trainset[[col]] <- ifelse(is.na(trainset[[col]]), -1234567, trainset[[col]])
+# }
 
 # other ideas
 # are we reading "" as NA?
@@ -47,30 +51,30 @@ for (col in names(trainset)) {
 #data[, high_nas := ifelse(amount_nas>4,1,0)
 
 #???
-trainset[, ps_car.13_ps_reg_03 := ps_car_13*ps_reg_03] # WTF?
-trainset[, ps_reg.mult := ps_reg_01*ps_reg_02*ps_reg_03] # WTF?
+data[, ps_car.13_ps_reg_03 := ps_car_13*ps_reg_03] # WTF?
+data[, ps_reg.mult := ps_reg_01*ps_reg_02*ps_reg_03] # WTF?
 
-trainset[, count.missing := rowSums(.SD == -1, na.rm = T)]
-trainset[, count.sum.ps_ind := rowSums(.SD == 1), 
-         .SDcols = which( grepl("^ps_ind_[[:digit:]]+_bin$",names(trainset)) )]
-trainset[, count.sum.ps_calc := rowSums(.SD == 1), 
-         .SDcols = which( grepl("^ps_calc_[[:digit:]]+_bin$",names(trainset)) )]
+data[, count.missing := rowSums(.SD == -1, na.rm = T)]
+data[, count.sum.ps_ind := rowSums(.SD == 1), 
+         .SDcols = which( grepl("^ps_ind_[[:digit:]]+_bin$",names(data)) )]
+data[, count.sum.ps_calc := rowSums(.SD == 1), 
+         .SDcols = which( grepl("^ps_calc_[[:digit:]]+_bin$",names(data)) )]
 # missing by type
-trainset[, count.missing.ps_car := rowSums(.SD == -1), 
-         .SDcols = which( grepl("^ps_car_.*$",names(trainset)) )]
-trainset[, count.missing.ps_reg := rowSums(.SD == -1), 
-         .SDcols = which( grepl("^ps_reg_.*$",names(trainset)) )]
-trainset[, count.missing.ps_ind := rowSums(.SD == -1), 
-         .SDcols = which( grepl("^ps_ind_.*$",names(trainset)) )]
+data[, count.missing.ps_car := rowSums(.SD == -1), 
+         .SDcols = which( grepl("^ps_car_.*$",names(data)) )]
+data[, count.missing.ps_reg := rowSums(.SD == -1), 
+         .SDcols = which( grepl("^ps_reg_.*$",names(data)) )]
+data[, count.missing.ps_ind := rowSums(.SD == -1), 
+         .SDcols = which( grepl("^ps_ind_.*$",names(data)) )]
 
 # Univariate var importance
-allAUC <- filterVarImp(x = trainset, y = target)
-varImp <- data.frame(field = rownames(allAUC), 
+allAUC <- filterVarImp(x = data[!is.na(target), setdiff(names(data), c(excludedFlds)), with=F], y = target)
+varImportance <- data.frame(field = rownames(allAUC), 
                      AUC = allAUC[,1], 
-                     isDerived = !rownames(allAUC) %in% names(data),
-                     type=sapply(rownames(allAUC), function(x) { return (class(trainset[[x]])[1]) })) %>%
+                     isDerived = !rownames(allAUC) %in% oriNames,
+                     type=sapply(rownames(allAUC), function(x) { return (class(data[[x]])[1]) })) %>%
   arrange(AUC)
-p <- ggplot(tail(varImp,50), 
+p <- ggplot(tail(varImportance,50), 
             aes(x=factor(field,levels=field), y=AUC, label=sprintf("%.2f",AUC), fill=type, alpha=I(ifelse(isDerived, 0.4, 1))))+
   geom_bar(stat="identity")+
   geom_text(size=2,color="black",alpha=1)+
@@ -105,13 +109,13 @@ crossValidation <- trainControl(
 
 xgbGrid <- expand.grid(nrounds = seq(100,800,by=50)
                        ,eta = c(0.01,0.02,0.05)
-                       ,max_depth = c(5,7,9)
+                       ,max_depth = c(4,5,7)
                        ,gamma = 1
                        ,colsample_bytree = 1
                        ,min_child_weight = 1
                        ,subsample = 1) 
 
-model <- train(x = trainset, 
+model <- train(x = data[!is.na(target), setdiff(names(data), c(excludedFlds)), with=F], 
                y = target,
                method = "xgbTree"
                ,tuneGrid = xgbGrid
@@ -145,11 +149,16 @@ print(model$finalModel$tuneValue)
 # XGB display - model$finalModel
 # print(xgb.ggplot.deepness(model = model$finalModel, which="2x1") [[1]][[2]])
 # xgb.plot.multi.trees(feature_names = names(trainset), model=model$finalModel, features_keep=3)
-xgbImportance <- xgb.importance(names(trainset), model=model$finalModel)
+xgbImportance <- xgb.importance(setdiff(names(data), c(excludedFlds)), model=model$finalModel)
 print(xgb.ggplot.importance(head(xgbImportance,40))+ ggtitle("Model Var Importance"))
 
 cat("Best CV Gini  :",max(model$results$Gini),fill=T)
 print (model$results[which.max(model$results$Gini),])
 
 
-# preds <- predict(model, newdata = x_test, type = "prob")
+preds <- predict(model, newdata = data[is.na(target), setdiff(names(data), c(excludedFlds)), with=F], type = "prob")
+submission <- data.table( data[is.na(target), "id"], target = preds$X1)
+write.csv(submission, paste("data/submission_",format(now(), "%Y-%m-%d_%H-%M-%S"),".csv",sep=""), row.names = F, quote = F)
+
+print(head(submission, 100))
+proc.time() - ptm
