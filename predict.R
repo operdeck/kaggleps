@@ -15,6 +15,8 @@ theme_set(theme_minimal())
 # source("utils.R")
 ptm <- proc.time()
 
+set.seed(1966)
+
 data <- rbindlist(list(fread("data/train.csv"), fread("data/test.csv")), use.names = T, fill = T) 
 
 print(paste(sum(!is.na(data$target)), "rows of train data"))
@@ -27,7 +29,7 @@ print(summary(data))
 print("Modeling")
 
 target <- factor(make.names(data$target[!is.na(data$target)]))
-oriNames <- names(data)
+oriNames <- copy(names(data))
 excludedFlds <- c("target","id")
 # trainset <- data[, -c("target","id"), with=F]
 
@@ -50,22 +52,35 @@ excludedFlds <- c("target","id")
 #data[, amount_nas := rowSums(data == -1, na.rm = T)]
 #data[, high_nas := ifelse(amount_nas>4,1,0)
 
-#???
-data[, ps_car.13_ps_reg_03 := ps_car_13*ps_reg_03] # WTF?
-data[, ps_reg.mult := ps_reg_01*ps_reg_02*ps_reg_03] # WTF?
+# some combinations, inspired by PAD bivariate analysis
+data[, ps_car_13.ps_reg_03 := ps_car_13*ps_reg_03] 
+data[, ps_car_13.ps_reg_02 := ps_car_13*ps_reg_02]
+data[, ps_car_13.ps_reg_01 := ps_car_13*ps_reg_01]
+data[, ps_car_13.ps_ind_03 := ps_car_13*ps_ind_03]
+data[, ps_car_12.ps_reg_02 := ps_car_12*ps_reg_02]
+data[, ps_reg.mult := ps_reg_01*ps_reg_02*ps_reg_03]
 
-data[, count.missing := rowSums(.SD == -1, na.rm = T)]
-data[, count.sum.ps_ind := rowSums(.SD == 1), 
+# sum of binary fields by type
+data[, count.sum_bin.ps_ind := rowSums(.SD == 1), 
          .SDcols = which( grepl("^ps_ind_[[:digit:]]+_bin$",names(data)) )]
-data[, count.sum.ps_calc := rowSums(.SD == 1), 
+data[, count.sum_bin.ps_calc := rowSums(.SD == 1), 
          .SDcols = which( grepl("^ps_calc_[[:digit:]]+_bin$",names(data)) )]
-# missing by type
+
+# missing by type and overall
+data[, count.missing := rowSums(.SD == -1, na.rm = T)]
 data[, count.missing.ps_car := rowSums(.SD == -1), 
          .SDcols = which( grepl("^ps_car_.*$",names(data)) )]
 data[, count.missing.ps_reg := rowSums(.SD == -1), 
          .SDcols = which( grepl("^ps_reg_.*$",names(data)) )]
 data[, count.missing.ps_ind := rowSums(.SD == -1), 
          .SDcols = which( grepl("^ps_ind_.*$",names(data)) )]
+
+# categorical values replace by average target
+for (fld in oriNames[which(endsWith(oriNames,  "_cat"))])
+{
+  mapping <- data[!is.na(target), lapply(.SD,mean), by=data[!is.na(target)][[fld]], .SDcols=c("target")]
+  data[[paste(fld, "avgbeh", sep=".")]] <- mapvalues(data[[fld]], mapping$data, mapping$target)
+}
 
 # Univariate var importance
 allAUC <- filterVarImp(x = data[!is.na(target), setdiff(names(data), c(excludedFlds)), with=F], y = target)
@@ -108,7 +123,7 @@ crossValidation <- trainControl(
 # ideas on XGB hyp params see https://i.stack.imgur.com/9GgQK.jpg
 
 xgbGrid <- expand.grid(nrounds = seq(100,800,by=50)
-                       ,eta = c(0.01,0.02,0.05)
+                       ,eta = c(0.01,0.02,0.03,0.05)
                        ,max_depth = c(4,5,7)
                        ,gamma = 1
                        ,colsample_bytree = 1
@@ -158,7 +173,9 @@ print (model$results[which.max(model$results$Gini),])
 
 preds <- predict(model, newdata = data[is.na(target), setdiff(names(data), c(excludedFlds)), with=F], type = "prob")
 submission <- data.table( data[is.na(target), "id"], target = preds$X1)
-write.csv(submission, paste("data/submission_",format(now(), "%Y-%m-%d_%H-%M-%S"),".csv",sep=""), row.names = F, quote = F)
+submFile <- paste("data/submission_",format(now(), "%Y-%m-%d_%H-%M-%S"),".csv",sep="")
+write.csv(submission, submFile, row.names = F, quote = F)
+print(submFile)
 
-print(head(submission, 100))
-proc.time() - ptm
+#print(head(submission, 100))
+print(proc.time() - ptm)

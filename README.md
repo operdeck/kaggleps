@@ -33,4 +33,9 @@ Best CV Gini  : 0.2807336
 Tuning suggests smaller tree depth is better
 nr of iterations & eta sort of inverse related as always
 
-TODO prep for scoring
+submitted; LB score only .277/.278 instead of CV of .282 here
+
+    eta max_depth gamma colsample_bytree min_child_weight subsample nrounds       ROC      Sens         Spec      Gini
+95 0.05         4     1                1                1         1     300 0.6414324 0.9999808 0.0004148421 0.2828647
+         ROCSD       SensSD       SpecSD      GiniSD
+95 0.002185704 3.898815e-06 0.0003786973 0.004371408
