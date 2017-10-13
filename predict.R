@@ -4,6 +4,7 @@ library(tidyverse)
 library(data.table)
 library(stringr)
 library(lubridate)
+library(plyr)
 library(dplyr)
 library(caret)
 library(ggplot2)
@@ -15,7 +16,7 @@ theme_set(theme_minimal())
 # source("utils.R")
 ptm <- proc.time()
 
-set.seed(1966)
+set.seed(2017)
 
 data <- rbindlist(list(fread("data/train.csv"), fread("data/test.csv")), use.names = T, fill = T) 
 
@@ -60,7 +61,12 @@ data[, ps_car_13.ps_ind_03 := ps_car_13*ps_ind_03]
 data[, ps_car_12.ps_reg_02 := ps_car_12*ps_reg_02]
 data[, ps_reg.mult := ps_reg_01*ps_reg_02*ps_reg_03]
 
+# From Forum
+# Firstly, you can obtain top features by using Random Forest or xgboost, then trying to create feature interaction. 
+# For example, the multiplication between top 10 feature pairs, then you can get 0.282 by using the single xgboost model.
+
 # sum of binary fields by type
+# why not also min/max ...
 data[, count.sum_bin.ps_ind := rowSums(.SD == 1), 
          .SDcols = which( grepl("^ps_ind_[[:digit:]]+_bin$",names(data)) )]
 data[, count.sum_bin.ps_calc := rowSums(.SD == 1), 
@@ -113,7 +119,7 @@ gini <- function(data, lev=NULL, model=NULL){
 crossValidation <- trainControl(
   # method = "none", # Fitting models without parameter tuning
   method = "cv", # "repeatedcv" and repeats
-  number=5,
+  number=10,
   summaryFunction = gini,
   classProbs = TRUE,
   # verbose=T,
