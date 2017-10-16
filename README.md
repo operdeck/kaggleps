@@ -39,3 +39,27 @@ submitted; LB score only .277/.278 instead of CV of .282 here
 95 0.05         4     1                1                1         1     300 0.6414324 0.9999808 0.0004148421 0.2828647
          ROCSD       SensSD       SpecSD      GiniSD
 95 0.002185704 3.898815e-06 0.0003786973 0.004371408
+
+
+
+Tuning parameter 'gamma' was held constant at a value of 1
+Tuning parameter 'colsample_bytree' was
+ held constant at a value of 1
+Tuning parameter 'min_child_weight' was held constant at a value of
+ 1
+Tuning parameter 'subsample' was held constant at a value of 1
+Gini was used to select the optimal model using  the largest value.
+The final values used for the model were nrounds = 800, max_depth = 4, eta = 0.02, gamma =
+ 1, colsample_bytree = 1, min_child_weight = 1 and subsample = 1.
+Warning: Ignoring unknown aesthetics: shape
+[1] "Tuning params"
+   nrounds max_depth  eta gamma colsample_bytree min_child_weight subsample
+60     800         4 0.02     1                1                1         1
+Best CV Gini  : 0.2837303
+    eta max_depth gamma colsample_bytree min_child_weight subsample nrounds       ROC      Sens
+60 0.02         4     1                1                1         1     800 0.6418651 0.9999808
+          Spec      Gini       ROCSD       SensSD       SpecSD    GiniSD
+60 0.000460957 0.2837303 0.006169199 1.526703e-05 0.0004345243 0.0123384
+[1] "data/submission_2017-10-14_07-42-16.csv"
+     user    system   elapsed 
+402982.74   1149.87  60342.56 

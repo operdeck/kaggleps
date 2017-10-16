@@ -64,6 +64,7 @@ data[, ps_reg.mult := ps_reg_01*ps_reg_02*ps_reg_03]
 # From Forum
 # Firstly, you can obtain top features by using Random Forest or xgboost, then trying to create feature interaction. 
 # For example, the multiplication between top 10 feature pairs, then you can get 0.282 by using the single xgboost model.
+# ps_car_12 = SQRT of values between 0.1000 and 1.6000 with a 4 dp resolution. ps_car_14 = SQRT of values between 0.0120 and 0.4050 again to 4dp.
 
 # sum of binary fields by type
 # why not also min/max ...
