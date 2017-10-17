@@ -16,7 +16,7 @@ theme_set(theme_minimal())
 # source("utils.R")
 ptm <- proc.time()
 
-set.seed(2017)
+set.seed(2018)
 
 data <- rbindlist(list(fread("data/train.csv"), fread("data/test.csv")), use.names = T, fill = T) 
 
@@ -81,6 +81,20 @@ data[, count.missing.ps_reg := rowSums(.SD == -1),
          .SDcols = which( grepl("^ps_reg_.*$",names(data)) )]
 data[, count.missing.ps_ind := rowSums(.SD == -1), 
          .SDcols = which( grepl("^ps_ind_.*$",names(data)) )]
+
+# min/max by type
+data[, max.ps_car := apply(.SD, 1, max, na.rm=T), 
+     .SDcols = which( grepl("^ps_car_.*$",names(data)) )]
+data[, max.ps_reg := apply(.SD, 1, max, na.rm=T), 
+     .SDcols = which( grepl("^ps_reg_.*$",names(data)) )]
+data[, max.ps_ind := apply(.SD, 1, max, na.rm=T), 
+     .SDcols = which( grepl("^ps_ind_.*$",names(data)) )]
+data[, min_max.ps_car := apply(.SD, 1, function(x) { return( max(x, na.rm=T) - min(x, na.rm=T))}), 
+     .SDcols = which( grepl("^ps_car_.*$",names(data)) )]
+data[, min_max.ps_reg := apply(.SD, 1, function(x) { return( max(x, na.rm=T) - min(x, na.rm=T))}),
+     .SDcols = which( grepl("^ps_reg_.*$",names(data)) )]
+data[, min_max.ps_ind := apply(.SD, 1, function(x) { return( max(x, na.rm=T) - min(x, na.rm=T))}),
+     .SDcols = which( grepl("^ps_ind_.*$",names(data)) )]
 
 # categorical values replace by average target
 for (fld in oriNames[which(endsWith(oriNames,  "_cat"))])

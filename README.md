@@ -63,3 +63,29 @@ Best CV Gini  : 0.2837303
 [1] "data/submission_2017-10-14_07-42-16.csv"
      user    system   elapsed 
 402982.74   1149.87  60342.56 
+
+
+Tuning parameter 'gamma' was held constant at a value of 1
+Tuning parameter 'colsample_bytree' was
+ held constant at a value of 1
+Tuning parameter 'min_child_weight' was held constant at a value of
+ 1
+Tuning parameter 'subsample' was held constant at a value of 1
+Gini was used to select the optimal model using  the largest value.
+The final values used for the model were nrounds = 550, max_depth = 4, eta = 0.03, gamma =
+ 1, colsample_bytree = 1, min_child_weight = 1 and subsample = 1.
+Warning: Ignoring unknown aesthetics: shape
+[1] "Tuning params"
+    nrounds max_depth  eta gamma colsample_bytree min_child_weight subsample
+100     550         4 0.03     1                1                1         1
+Best CV Gini  : 0.2830481
+     eta max_depth gamma colsample_bytree min_child_weight subsample nrounds       ROC      Sens
+100 0.03         4     1                1                1         1     550 0.6415241 0.9999756
+            Spec      Gini       ROCSD      SensSD       SpecSD     GiniSD
+100 0.0003687698 0.2830481 0.006580445 2.35373e-05 0.0002915662 0.01316089
+[1] "data/submission_2017-10-17_10-24-48.csv"
+     user    system   elapsed 
+440830.16   1218.11  65351.58 
+
+still only at 0.278...
+
