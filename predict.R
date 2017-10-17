@@ -16,7 +16,7 @@ theme_set(theme_minimal())
 # source("utils.R")
 ptm <- proc.time()
 
-set.seed(2018)
+set.seed(20181)
 
 data <- rbindlist(list(fread("data/train.csv"), fread("data/test.csv")), use.names = T, fill = T) 
 
@@ -144,9 +144,9 @@ crossValidation <- trainControl(
 # ideas on XGB hyp params see https://i.stack.imgur.com/9GgQK.jpg
 
 xgbGrid <- expand.grid(nrounds = seq(100,800,by=50)
-                       ,eta = c(0.01,0.02,0.03,0.05)
-                       ,max_depth = c(4,5,7)
-                       ,gamma = 1
+                       ,eta = c(0.02,0.03,0.05)
+                       ,max_depth = c(3,4,5)
+                       ,gamma = c(0,1,5)
                        ,colsample_bytree = 1
                        ,min_child_weight = 1
                        ,subsample = 1) 
@@ -199,4 +199,5 @@ write.csv(submission, submFile, row.names = F, quote = F)
 print(submFile)
 
 #print(head(submission, 100))
+print("Timing:")
 print(proc.time() - ptm)
