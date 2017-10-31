@@ -18,6 +18,7 @@ ptm <- proc.time()
 
 # More ideas for transformations from H2O
 # https://www.h2o.ai/wp-content/uploads/2017/09/driverlessai/transformations.html
+# https://www.kaggle.com/kueipo/base-on-froza-pascal-single-xgb-lb-0-284
 
 set.seed(20181)
 
@@ -37,6 +38,8 @@ oriNames <- copy(names(data))
 excludedFlds <- c("target","id")
 # trainset <- data[, -c("target","id"), with=F]
 
+data[, names(data)[startsWith(names(data),"ps_calc_")] := NULL] # dropping calc columns, see https://www.kaggle.com/kueipo/base-on-froza-pascal-single-xgb-lb-0-284
+
 # Make numeric - N/A in this dataset
 # symCols <- names(data)[!sapply(data, is.numeric)]
 # for (symcol in symCols) {
@@ -52,7 +55,7 @@ excludedFlds <- c("target","id")
 
 # other ideas
 # are we reading "" as NA?
-# row sum of all the _bin vars per categorey, e.g. ps_ind_xx_bin, ps_calc_xx_bin etc
+# row sum of all the _bin vars per categorey, e.g. ps_ind_xx_bin etc
 #data[, amount_nas := rowSums(data == -1, na.rm = T)]
 #data[, high_nas := ifelse(amount_nas>4,1,0)
 
@@ -73,8 +76,6 @@ data[, ps_reg.mult := ps_reg_01*ps_reg_02*ps_reg_03]
 # why not also min/max ...
 data[, count.sum_bin.ps_ind := rowSums(.SD == 1), 
          .SDcols = which( grepl("^ps_ind_[[:digit:]]+_bin$",names(data)) )]
-data[, count.sum_bin.ps_calc := rowSums(.SD == 1), 
-         .SDcols = which( grepl("^ps_calc_[[:digit:]]+_bin$",names(data)) )]
 
 # missing by type and overall
 data[, count.missing := rowSums(.SD == -1, na.rm = T)]
@@ -146,13 +147,13 @@ crossValidation <- trainControl(
 
 # ideas on XGB hyp params see https://i.stack.imgur.com/9GgQK.jpg
 
-xgbGrid <- expand.grid(nrounds = seq(100,800,by=50)
-                       ,eta = c(0.02,0.03,0.05)
-                       ,max_depth = c(3,4,5)
+xgbGrid <- expand.grid(nrounds = seq(100,1000,by=100)
+                       ,eta = c(0.02,0.025)
+                       ,max_depth = c(4)
                        ,gamma = c(0,1,5)
-                       ,colsample_bytree = 1
-                       ,min_child_weight = 1
-                       ,subsample = 1) 
+                       ,colsample_bytree = 0.7
+                       ,min_child_weight = 100
+                       ,subsample = 0.7) 
 
 model <- train(x = data[!is.na(target), setdiff(names(data), c(excludedFlds)), with=F], 
                y = target,
