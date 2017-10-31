@@ -16,6 +16,9 @@ theme_set(theme_minimal())
 # source("utils.R")
 ptm <- proc.time()
 
+# More ideas for transformations from H2O
+# https://www.h2o.ai/wp-content/uploads/2017/09/driverlessai/transformations.html
+
 set.seed(20181)
 
 data <- rbindlist(list(fread("data/train.csv"), fread("data/test.csv")), use.names = T, fill = T) 
