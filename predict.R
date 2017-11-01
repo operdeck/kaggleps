@@ -38,7 +38,8 @@ oriNames <- copy(names(data))
 excludedFlds <- c("target","id")
 # trainset <- data[, -c("target","id"), with=F]
 
-data[, names(data)[startsWith(names(data),"ps_calc_")] := NULL] # dropping calc columns, see https://www.kaggle.com/kueipo/base-on-froza-pascal-single-xgb-lb-0-284
+# dropping calc columns, see https://www.kaggle.com/kueipo/base-on-froza-pascal-single-xgb-lb-0-284
+data[, names(data)[startsWith(names(data),"ps_calc_")] := NULL] 
 
 # Make numeric - N/A in this dataset
 # symCols <- names(data)[!sapply(data, is.numeric)]
@@ -138,7 +139,7 @@ gini <- function(data, lev=NULL, model=NULL){
 crossValidation <- trainControl(
   # method = "none", # Fitting models without parameter tuning
   method = "cv", # "repeatedcv" and repeats
-  number=10,
+  number=5,
   summaryFunction = gini,
   classProbs = TRUE,
   # verbose=T,
@@ -180,6 +181,8 @@ print(head(varImp(model)$importance,20))
 # Report on CV tuning
 print(model)
 print(ggplot(model) + ggtitle("Tuning"))
+ggsave("tuningplot.png") # by default saves the last plot
+
 # cat("Best CV error:",min(model$results$Error),fill=T)
 # cat("AUC for lowest error:",model$results$ROC[which.min(model$results$Error)],fill=T)
 
@@ -191,10 +194,15 @@ print(model$finalModel$tuneValue)
 # xgb.plot.multi.trees(feature_names = names(trainset), model=model$finalModel, features_keep=3)
 xgbImportance <- xgb.importance(setdiff(names(data), c(excludedFlds)), model=model$finalModel)
 print(xgb.ggplot.importance(head(xgbImportance,40))+ ggtitle("Model Var Importance"))
+ggsave("varimportance.png") # by default saves the last plot
 
 cat("Best CV Gini  :",max(model$results$Gini),fill=T)
 print (model$results[which.max(model$results$Gini),])
 
+sink("results.txt")
+print(model$results)
+print (model$results[which.max(model$results$Gini),])
+sink()
 
 preds <- predict(model, newdata = data[is.na(target), setdiff(names(data), c(excludedFlds)), with=F], type = "prob")
 submission <- data.table( data[is.na(target), "id"], target = preds$X1)
